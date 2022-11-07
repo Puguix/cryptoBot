@@ -29,7 +29,7 @@ Le projet est prêt à être utilisé.
 
 Télécharger les données:
 
-> node download_data.js
+> node database/download_data.js
 
 ---
 
