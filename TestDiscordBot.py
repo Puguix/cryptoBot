@@ -1,4 +1,5 @@
 import discord
+import time
 
 TOKEN = "MTAzOTIyOTc5Njk2Nzc4ODY4NA.GEBYR2.bQWmWep-AqaeP8YKBZoWNzVp8AlXZf6z089BRk"
 
