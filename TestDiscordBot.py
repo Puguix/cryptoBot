@@ -10,7 +10,7 @@ client = discord.Client(intents=discord.Intents.default())
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
 
-    channel = client.get_channel(1039230555797061704)
+    channel = client.get_channel(1041048235378225192)
     await channel.send(messages)
 
     user = await client.fetch_user(317684843393581056)
