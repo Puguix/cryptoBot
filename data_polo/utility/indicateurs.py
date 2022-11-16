@@ -548,3 +548,51 @@ def volume_anomalu(df, volume_window=10):
     return dfInd["VolAnomaly"]
 
 df["volume_anomaly"] = volume_anomalu(df, volume_window=10)
+
+
+# indicateurs en vrac
+
+
+df['EMA90']=ta.trend.ema_indicator(df['close'], 90)
+df['RSI'] =ta.momentum.rsi(df['close'],14)
+df['Hrsi'] =df['rsi'].rolling(14).max()
+df['Lrsi'] =df['rsi'].rolling(14).min()
+df['stoch_rsi'] = (df['rsi'] - df['Lrsi']) / (df['Hrsi'] - df['Lrsi'])
+df['histo_macd']=ta.trend.macd_diff(df['close'], 26, 12, 9)
+df['EMA28']=ta.trend.ema_indicator(df['close'], 28)
+df['EMA48']=ta.trend.ema_indicator(df['close'], 48)
+df['MACD']=ta.trend.macd(df['close'], 26, 12, 9)
+df['MACD_SIGNAL']=ta.trend.macd_signal(df['close'], 26, 12, 9)
+df['MACD_HISTO']= df['MACD'] - df['MACD_SIGNAL']
+df['EMA8']=ta.trend.ema_indicator(df['close'], 8)
+df['EMA14']=ta.trend.ema_indicator(df['close'], 14)
+df['EMA50']=ta.trend.ema_indicator(df['close'], 50)
+df['HIGH_BOL_BAND']=ta.volatility.bollinger_hband(df['close'], 23, 0)
+df['LOW_BOL_BAND']=ta.volatility.bollinger_lband(df['close'], 20, 2)
+df['HIGH_BOL_BAND']=df['HIGH_BOL_BAND'].shift(periods=37)
+df['LOW_BOL_BAND']=df['LOW_BOL_BAND'].shift(periods=10)
+df['STOCH_RSI']=ta.momentum.stochrsi(df['close'])
+df['MEAN_STOCH_RSI'] = ta.trend.sma_indicator(df['STOCH_RSI'], 3)
+df['SIGNAL_MEAN_STOCH_RSI'] = ta.trend.sma_indicator(df['MEAN_STOCH_RSI'], 3)
+df["TRIX0"] = ta.trend.ema_indicator(ta.trend.ema_indicator(ta.trend.ema_indicator(df['close'], 9, fillna=False), 9, fillna=False), 9, fillna=False)
+df['TRIX1'] =  df["TRIX0"].pct_change()*100
+df['TRIX2'] = ta.trend.sma_indicator(df['TRIX1'],22)
+df['histo'] = df['TRIX1'] - df['TRIX2']
+df['MAX_RECTANGLE9'] = df['high'].rolling(9).max()
+df['MAX_RECTANGLE26'] = df['high'].rolling(26).max()
+df['MAX_RECTANGLE52'] = df['high'].rolling(52).max()
+df['MAX_RECTANGLE9']=df['MAX_RECTANGLE9'].shift(periods=1)
+df['MAX_RECTANGLE26']=df['MAX_RECTANGLE26'].shift(periods=1)
+df['MAX_RECTANGLE52']=df['MAX_RECTANGLE52'].shift(periods=1)
+df['KIJUN'] = ta.trend.ichimoku_base_line(df['high'],df['low'])
+df['TENKAN'] = ta.trend.ichimoku_conversion_line(df['high'],df['low'])
+df['SSA'] = ta.trend.ichimoku_a(df['high'],df['low'],3,38).shift(periods=48)
+df['SSB'] = ta.trend.ichimoku_b(df['high'],df['low'],38,46).shift(periods=48)
+df['TENKAN26'] = df['TENKAN'].shift(periods=25)
+df['SHIFT26']=df['close'].shift(periods=-25)
+df['HISTO'] = df['SHIFT26']-df['TENKAN']
+df['HISTO'] = df['HISTO'].shift(periods=25)
+df['SHIFT26']=df['SHIFT26'].shift(periods=26)
+df['ATR'] = ta.volatility.average_true_range(df['high'],df['low'],df['close'],10)
+df['BAIC_SUPER_UP'] = (df['high'] + df['low']) / 2 - 3 * df['ATR']
+df['BAIC_SUPER_DOWN'] = (df['high'] + df['low']) / 2 + 3 * df['ATR']
