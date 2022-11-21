@@ -596,3 +596,120 @@ df['SHIFT26']=df['SHIFT26'].shift(periods=26)
 df['ATR'] = ta.volatility.average_true_range(df['high'],df['low'],df['close'],10)
 df['BAIC_SUPER_UP'] = (df['high'] + df['low']) / 2 - 3 * df['ATR']
 df['BAIC_SUPER_DOWN'] = (df['high'] + df['low']) / 2 + 3 * df['ATR']
+
+
+# - - Indicateurs perso - - 
+
+# - - UT Bot Alerts - -
+
+def UTBotAlerts(df,sensitivity, period):
+    close = df['close']
+    xATR = ta.volatility.average_true_range(df['high'], df['low'], close, period)
+    nLoss = sensitivity * xATR
+    n = close.size
+    trailingStop, pos = [0] * n, [0] * n
+    above, below = [False] * n, [False] * n
+    buy, sell = [False] * n, [False] * n
+    
+    ema = ta.trend.ema_indicator(close, window=1)
+        
+    for curr in range(1, n):
+        prev = curr - 1
+        if (close.iloc[curr] > trailingStop.iloc[prev] and close.iloc[prev] > trailingStop.iloc[prev]):
+            trailingStop.iloc[curr] = max(trailingStop.iloc[prev], close.iloc[curr] - nLoss,)
+        elif (close.iloc[curr] < trailingStop.iloc[prev] and close.iloc[prev] < trailingStop.iloc[prev]):
+            trailingStop.iloc[curr] = min(trailingStop.iloc[prev], close.iloc[curr] + nLoss,)
+        elif (close.iloc[curr] > trailingStop.iloc[prev]):
+            trailingStop.iloc[curr] = close.iloc[curr] - nLoss
+        else:
+            trailingStop.iloc[curr] = close.iloc[curr] + nLoss
+            
+        if (close.iloc[prev] < trailingStop.iloc[prev] and close.iloc[curr] > trailingStop.iloc[prev]):
+            pos.iloc[curr] = 1
+        elif (close.iloc[prev] > trailingStop.iloc[prev] and close.iloc[curr] < trailingStop.iloc[prev]):
+            pos.iloc[curr] = -1
+        else:
+            pos.iloc[curr] = pos.iloc[prev]
+            
+        above.iloc[curr] = ema[curr] > trailingStop.iloc[curr] and ema.iloc[prev] < trailingStop.iloc[prev]
+        below.iloc[curr] = ema[curr] < trailingStop.iloc[curr] and ema.iloc[prev] > trailingStop.iloc[prev]
+        
+        buy.iloc[curr] = close[curr] > trailingStop.iloc[curr] and above.iloc[curr]
+        sell.iloc[curr] = close[curr] < trailingStop.iloc[curr] and below.iloc[curr]
+        
+    res = pd.DataFrame({'buy': buy, 'sell': sell})
+
+    df = pd.concat([df, res], ignore_index = True)
+    
+# - - fonctions utilitaires - -
+
+def lowest (values, current, length):
+    min = values.iloc[current]
+    for k in range(1, length):
+        min = values.iloc[current - k] if values.iloc[current - k] < min else min
+    return min
+
+def highest (values, current, length):
+    max = values.iloc[current]
+    for k in range(1, length):
+        max = values.iloc[current - k] if values.iloc[current - k] > max else max
+    return max
+    
+    
+# - - STC - -
+
+def STC(df, EEEEEE, BBBB, BBBBB):
+    close = df['close']
+    n = close.size
+    
+    CCCCC = [0] * n
+    DDD = [0] * n
+    DDDDDD = [0] * n
+    EEEEE = [0] * n
+    
+    mColor = ["red"] * n
+    
+    def AAAA(BBB, BBBB, BBBBB):
+        fastMA = ta.trend.ema_indicator(BBB, BBBB)
+        slowMA = ta.trend.ema_indicator(BBB, BBBBB)
+        return fastMA - slowMA
+    
+    def AAAAA(EEEEEE, BBBB, BBBBB, curr):
+        prev = curr - 1
+        AAA = 0.5
+        BBBBBB = AAAA(close.iloc[curr], BBBB, BBBBB)
+        CCC = lowest(close, curr, 10)
+        CCCC = highest(close, curr, 10) - CCC
+        CCCCC.iloc[curr] = (BBBBBB - CCC) / CCCC * 100 if CCCC > 0 else CCCCC.iloc[prev]
+        DDD.iloc[curr] = CCCCC.iloc[curr] if DDD.iloc[prev] == 0 else DDD.iloc[prev] + AAA * (CCCCC.iloc[prev] - DDD.iloc[prev])
+        DDDD = lowest(DDD, EEEEEE)
+        DDDDD = highest(DDD, EEEEEE) - DDDD
+        DDDDDD.iloc[curr] = (DDD - DDDD) / DDDDD * 100 if DDDDD > 0 else DDDDDD.iloc[prev]
+        EEEEE.iloc[curr] = DDDDDD.iloc[curr] if EEEEE.iloc[prev] == 0 else EEEEE.iloc[prev] * AAA * (DDDDDD.iloc[curr] - EEEEE.iloc[prev])
+       
+    for curr in range(1, n):
+        #mAAAAA = EEEEE est fait en place  
+        AAAAA(EEEEEE, BBBB, BBBBB, curr)
+        mColor.iloc[curr] = "green" if EEEEEE.iloc[curr] > EEEEEE.iloc[curr - 1] else "red"
+    
+    res = pd.DataFrame({'STC': EEEEE, 'color': mColor})
+    
+    df = pd.concat([df, res], ignore_index = True)
+    
+    
+# - - Hull Suite - -
+
+def HullSuite(df, length):
+    close = df['close']
+    
+    def HMA(src, length):
+        return ta.trend.wma_indicator(2 * ta.trend.wma_indicator(src, window=length / 2, fillna=False) - ta.trend.wma_indicator(src, window=length, fillna=False), window=round(length ** (1/2)), fillna=False)
+    
+    HULL = HMA(close, length)
+    
+    hColor = ["red"] * close.size
+    for curr in range(1, close.size):
+        hColor.iloc[curr] = "green" if HULL.iloc[curr] > HULL.iloc[curr -2] else "red"
+    
+    df = pd.concat([df, pd.DataFrame({'hColor': hColor})], ignore_index = True)
+    
