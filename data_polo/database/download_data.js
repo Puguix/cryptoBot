@@ -243,7 +243,7 @@ wanted_pair = [
 // wanted_pair = coin_list['ftx_main_list']
 
 // --- Edit timeframe list and start date here ---
-timeframe_list = ["1h"];
+timeframe_list = ["5m"];
 start_date = "01-06-2017";
 
 get_multi_ohlcv(

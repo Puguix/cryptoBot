@@ -3,7 +3,7 @@
 # Heiki Ashi Bar
 def heikinashi_df(df):
     df['ha_close'] = (df.open + df.high + df.low + df.close)/4
-    ha_open = [(df.open[0] + df.close[0]) / 2]
+    ha_open = [(df.open[0] + df.close.iloc[0]) / 2]
     [ha_open.append((ha_open[i] + df.ha_close.values[i]) / 2)
      for i in range(0, len(df)-1)]
     df['ha_open'] = ha_open
@@ -145,10 +145,10 @@ class SuperTrend():
             curr, prev = i, i-1
             
             # if current close price crosses above upperband
-            if self.close[curr] > final_upperband[prev]:
+            if self.close.iloc[curr] > final_upperband[prev]:
                 supertrend[curr] = True
             # if current close price crosses below lowerband
-            elif self.close[curr] < final_lowerband[prev]:
+            elif self.close.iloc[curr] < final_lowerband[prev]:
                 supertrend[curr] = False
             # else, the trend continues
             else:
@@ -605,8 +605,8 @@ df['BAIC_SUPER_DOWN'] = (df['high'] + df['low']) / 2 + 3 * df['ATR']
 def UTBotAlerts(df,sensitivity, period):
     close = df['close']
     xATR = ta.volatility.average_true_range(df['high'], df['low'], close, period)
-    nLoss = sensitivity * xATR
     n = close.size
+    nLoss = [sensitivity] * n
     trailingStop, pos = [0] * n, [0] * n
     above, below = [False] * n, [False] * n
     buy, sell = [False] * n, [False] * n
@@ -614,88 +614,74 @@ def UTBotAlerts(df,sensitivity, period):
     ema = ta.trend.ema_indicator(close, window=1)
         
     for curr in range(1, n):
+        nLoss[curr] *= xATR.iloc[curr]
         prev = curr - 1
-        if (close.iloc[curr] > trailingStop.iloc[prev] and close.iloc[prev] > trailingStop.iloc[prev]):
-            trailingStop.iloc[curr] = max(trailingStop.iloc[prev], close.iloc[curr] - nLoss,)
-        elif (close.iloc[curr] < trailingStop.iloc[prev] and close.iloc[prev] < trailingStop.iloc[prev]):
-            trailingStop.iloc[curr] = min(trailingStop.iloc[prev], close.iloc[curr] + nLoss,)
-        elif (close.iloc[curr] > trailingStop.iloc[prev]):
-            trailingStop.iloc[curr] = close.iloc[curr] - nLoss
+        if ((close.iloc[curr] > trailingStop[prev]) & (close.iloc[prev] > trailingStop[prev])):
+            trailingStop[curr] = np.maximum(trailingStop[prev], close.iloc[curr] - nLoss[curr])
+        elif ((close.iloc[curr] < trailingStop[prev]) & (close.iloc[prev] < trailingStop[prev])):
+            trailingStop[curr] = np.minimum(trailingStop[prev], close.iloc[curr] + nLoss[curr])
+        elif (close.iloc[curr] > trailingStop[prev]):
+            trailingStop[curr] = close.iloc[curr] - nLoss[curr]
         else:
-            trailingStop.iloc[curr] = close.iloc[curr] + nLoss
+            trailingStop[curr] = close.iloc[curr] + nLoss[curr]
             
-        if (close.iloc[prev] < trailingStop.iloc[prev] and close.iloc[curr] > trailingStop.iloc[prev]):
-            pos.iloc[curr] = 1
-        elif (close.iloc[prev] > trailingStop.iloc[prev] and close.iloc[curr] < trailingStop.iloc[prev]):
-            pos.iloc[curr] = -1
+        if ((close.iloc[prev] < trailingStop[prev]) & (close.iloc[curr] > trailingStop[prev])):
+            pos[curr] = 1
+        elif ((close.iloc[prev] > trailingStop[prev]) & (close.iloc[curr] < trailingStop[prev])):
+            pos[curr] = -1
         else:
-            pos.iloc[curr] = pos.iloc[prev]
+            pos[curr] = pos[prev]
             
-        above.iloc[curr] = ema[curr] > trailingStop.iloc[curr] and ema.iloc[prev] < trailingStop.iloc[prev]
-        below.iloc[curr] = ema[curr] < trailingStop.iloc[curr] and ema.iloc[prev] > trailingStop.iloc[prev]
+        above[curr] = (ema[curr] > trailingStop[curr]) & (ema[prev] < trailingStop[prev])
+        below[curr] = (ema[curr] < trailingStop[curr]) & (ema[prev] > trailingStop[prev])
         
-        buy.iloc[curr] = close[curr] > trailingStop.iloc[curr] and above.iloc[curr]
-        sell.iloc[curr] = close[curr] < trailingStop.iloc[curr] and below.iloc[curr]
-        
-    res = pd.DataFrame({'buy': buy, 'sell': sell})
-
-    df = pd.concat([df, res], ignore_index = True)
+        buy[curr] = (close[curr] > trailingStop[curr]) & (above[curr])
+        sell[curr] = (close[curr] < trailingStop[curr]) & (below[curr])
+           
+    return pd.DataFrame({'buy': buy, 'sell': sell})
     
 # - - fonctions utilitaires - -
 
 def lowest (values, current, length):
-    min = values.iloc[current]
+    min = values[current]
     for k in range(1, length):
-        min = values.iloc[current - k] if values.iloc[current - k] < min else min
+        min = values[current - k] if values[current - k] < min else min
     return min
 
 def highest (values, current, length):
-    max = values.iloc[current]
+    max = values[current]
     for k in range(1, length):
-        max = values.iloc[current - k] if values.iloc[current - k] > max else max
+        max = values[current - k] if values[current - k] > max else max
     return max
     
     
 # - - STC - -
 
-def STC(df, EEEEEE, BBBB, BBBBB):
+def STC(df, length, fastLength, slowLength):
+    print("entree stc")
     close = df['close']
     n = close.size
     
-    CCCCC = [0] * n
-    DDD = [0] * n
-    DDDDDD = [0] * n
-    EEEEE = [0] * n
-    
+    k = [0] * n
+    kd = [0] * n
     mColor = ["red"] * n
     
-    def AAAA(BBB, BBBB, BBBBB):
-        fastMA = ta.trend.ema_indicator(BBB, BBBB)
-        slowMA = ta.trend.ema_indicator(BBB, BBBBB)
-        return fastMA - slowMA
+    macd = ta.trend.ema_indicator(close, fastLength) - ta.trend.ema_indicator(close, slowLength)
     
-    def AAAAA(EEEEEE, BBBB, BBBBB, curr):
-        prev = curr - 1
-        AAA = 0.5
-        BBBBBB = AAAA(close.iloc[curr], BBBB, BBBBB)
-        CCC = lowest(close, curr, 10)
-        CCCC = highest(close, curr, 10) - CCC
-        CCCCC.iloc[curr] = (BBBBBB - CCC) / CCCC * 100 if CCCC > 0 else CCCCC.iloc[prev]
-        DDD.iloc[curr] = CCCCC.iloc[curr] if DDD.iloc[prev] == 0 else DDD.iloc[prev] + AAA * (CCCCC.iloc[prev] - DDD.iloc[prev])
-        DDDD = lowest(DDD, EEEEEE)
-        DDDDD = highest(DDD, EEEEEE) - DDDD
-        DDDDDD.iloc[curr] = (DDD - DDDD) / DDDDD * 100 if DDDDD > 0 else DDDDDD.iloc[prev]
-        EEEEE.iloc[curr] = DDDDDD.iloc[curr] if EEEEE.iloc[prev] == 0 else EEEEE.iloc[prev] * AAA * (DDDDDD.iloc[curr] - EEEEE.iloc[prev])
-       
     for curr in range(1, n):
-        #mAAAAA = EEEEE est fait en place  
-        AAAAA(EEEEEE, BBBB, BBBBB, curr)
-        mColor.iloc[curr] = "green" if EEEEEE.iloc[curr] > EEEEEE.iloc[curr - 1] else "red"
+        k[curr] = 100 * (macd[curr] - lowest(macd, curr, length)) / (highest(macd, curr, length) - lowest(macd, curr, length))
+    print("boucle 1 ok")
+    d = ta.trend.ema_indicator(macd, 3)
     
-    res = pd.DataFrame({'STC': EEEEE, 'color': mColor})
+    for curr in range(1, n):
+        kd[curr] = 100 * (d.iloc[curr] - lowest(d, curr, length)) / (highest(d, curr, length) - lowest(d, curr, length))
+    print("bloucle 2 ok")
+    schaffTrend = ta.trend.ema_indicator(pd.Series(kd), 3)
     
-    df = pd.concat([df, res], ignore_index = True)
-    
+    mColor[curr] = "green" if schaffTrend.iloc[curr] > schaffTrend.iloc[curr - 1] else "red"
+        
+    return pd.DataFrame({'STC': schaffTrend, 'color': mColor})
+   
     
 # - - Hull Suite - -
 
@@ -703,13 +689,13 @@ def HullSuite(df, length):
     close = df['close']
     
     def HMA(src, length):
-        return ta.trend.wma_indicator(2 * ta.trend.wma_indicator(src, window=length / 2, fillna=False) - ta.trend.wma_indicator(src, window=length, fillna=False), window=round(length ** (1/2)), fillna=False)
+        return ta.trend.wma_indicator(2 * ta.trend.wma_indicator(src, window=length // 2, fillna=False) - ta.trend.wma_indicator(src, window=length, fillna=False), window=round(length ** (1/2)), fillna=False)
     
     HULL = HMA(close, length)
     
     hColor = ["red"] * close.size
     for curr in range(1, close.size):
-        hColor.iloc[curr] = "green" if HULL.iloc[curr] > HULL.iloc[curr -2] else "red"
+        hColor[curr] = "green" if HULL[curr] > HULL[curr -2] else "red"
     
-    df = pd.concat([df, pd.DataFrame({'hColor': hColor})], ignore_index = True)
     
+    return pd.DataFrame({'hColor': hColor, 'hull': HULL})
