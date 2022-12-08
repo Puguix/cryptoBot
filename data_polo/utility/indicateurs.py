@@ -1,3 +1,10 @@
+import ta
+import math
+import numpy as np
+import requests
+import pandas as pd
+df = pd.DataFrame(["aluminium", "acier"])
+
 ### Différents styles de bougies
 
 # Heiki Ashi Bar
