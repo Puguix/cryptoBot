@@ -227,23 +227,11 @@ let exchange = new ccxt.binance({ enableRateLimit: true });
 //     "BCH/USDT",
 // ];
 
-wanted_pair = [
-    "BTC/USDT",
-    "ETH/USDT",
-    "FTM/USDT",
-    "ADA/USDT",
-    "BNB/USDT",
-    "LINK/USDT",
-    "LTC/USDT",
-    "DOGE/USDT",
-    "SOL/USDT",
-    "AVAX/USDT",
-    "DOT/USDT",
-];
+wanted_pair = ["ETH/USDT"];
 // wanted_pair = coin_list['ftx_main_list']
 
 // --- Edit timeframe list and start date here ---
-timeframe_list = ["5m"];
+timeframe_list = ["1h"];
 start_date = "01-06-2017";
 
 get_multi_ohlcv(
