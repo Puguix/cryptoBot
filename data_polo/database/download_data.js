@@ -227,7 +227,7 @@ let exchange = new ccxt.binance({ enableRateLimit: true });
 //     "BCH/USDT",
 // ];
 
-wanted_pair = ["ETH/USDT"];
+wanted_pair = ["FTM/USDT"];
 // wanted_pair = coin_list['ftx_main_list']
 
 // --- Edit timeframe list and start date here ---
